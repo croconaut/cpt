@@ -1,6 +1,6 @@
 This is the Wi-Fi / Wi-Fi Direct based peer to peer communication framework for Android. It stands for "Croconaut Public Transport", Croconaut was a "startup" from the times when we thought we can finish the product in three months. :) We'll use the wiki and the issues tracker for now.
 
-Checkout the [wiki](https://github.com/croconaut/cpt/wiki) for detailed description and information or follow the quick step-by-step guide:
+Checkout the [wiki](https://github.com/croconaut/cpt/wiki) for detailed description and information or follow the quick step-by-step guide and surely take a look at [WiFON mini](https://github.com/croconaut/wifon-mini) with a small demonstration how to put all together:
 
 # Gradle
 
