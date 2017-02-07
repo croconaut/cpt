@@ -14,7 +14,7 @@ Checkout the [wiki](https://github.com/croconaut/cpt/wiki) for detailed descript
     }
 
     dependencies {
-        compile 'com.croconaut:cpt:1.0.2'
+        compile 'com.croconaut:cpt:1.0.6'
     }
 
 # Add the broadcast receiver
