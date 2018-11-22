@@ -22,6 +22,12 @@ public class DiscoveryResults extends LinkLayerServiceIntent {
         );
     }
 
+    public Intent getPlainIntent(ArrayList<User> users) {
+        return new Intent(getAction())
+                .putExtra(EXTRA_USERS, users)
+                ;
+    }
+
     @Override
     public void onReceive(Context context, Intent intent, CptBroadcastReceiver targetReceiver) {
         int startId = intent.getIntExtra(EXTRA_START_ID, -1);

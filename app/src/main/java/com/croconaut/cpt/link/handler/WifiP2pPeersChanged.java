@@ -8,7 +8,7 @@ import android.os.Build;
 
 import com.croconaut.cpt.common.intent.CptBroadcastReceiver;
 import com.croconaut.cpt.common.intent.GlobalIntent;
-import com.croconaut.cpt.link.PreferenceHelper;
+import com.croconaut.cpt.link.Settings;
 
 public class WifiP2pPeersChanged extends GlobalIntent {
     public interface Receiver {
@@ -22,8 +22,7 @@ public class WifiP2pPeersChanged extends GlobalIntent {
     @Override
     public void onReceive(Context context, Intent intent, CptBroadcastReceiver targetReceiver) {
         WifiP2pDeviceList wifiP2pDeviceList;
-        PreferenceHelper helper = new PreferenceHelper(context);
-        if (Build.VERSION.SDK_INT >= 18 && helper.getNewApiCallsEnabled()) {
+        if (Build.VERSION.SDK_INT >= 18 && Settings.getInstance().useNewApi) {
             wifiP2pDeviceList = intent.getParcelableExtra(WifiP2pManager.EXTRA_P2P_DEVICE_LIST);
         } else {
             wifiP2pDeviceList = null;

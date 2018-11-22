@@ -248,7 +248,7 @@ class AttachmentsHelper extends AbstractHelper {
                 if (total - previousTotal >= (128*1024) || total == length) {
                     previousTotal = total;
                     builder.setProgress((int) length, (int) total, false);
-                    builder.setContentText(context.getResources().getString(isP2pConnection ? R.string.cpt_notif_p2p_download : R.string.cpt_notif_internet_download,
+                    builder.setContentText(context.getResources().getString(R.string.cpt_notif_p2p_download,
                             Formatter.formatShortFileSize(context, bytesPerSecond)));
                     nm.notify(notificationId, builder.build());
                 }
@@ -409,7 +409,7 @@ class AttachmentsHelper extends AbstractHelper {
                     if (total - previousTotal > (128*1024)) {
                         previousTotal = total;
                         builder.setProgress((int) length, (int) total, false);
-                        builder.setContentText(context.getResources().getString(isP2pConnection ? R.string.cpt_notif_p2p_upload : R.string.cpt_notif_internet_upload,
+                        builder.setContentText(context.getResources().getString(R.string.cpt_notif_p2p_upload,
                                 Formatter.formatShortFileSize(context, bytesPerSecond)));
                         nm.notify(notificationId, builder.build());
                     }

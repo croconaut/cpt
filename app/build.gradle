@@ -2,10 +2,10 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 
 group = 'com.croconaut'
-version = '1.0.17'
+version = '1.0.9'
 
 android {
-    buildToolsVersion "27.0.1"
+    buildToolsVersion "27"
 
     defaultConfig {
         minSdkVersion 16
@@ -43,7 +43,7 @@ uploadArchives {
     repositories {
         mavenDeployer {
             repository(url: myMavenRepoWriteUrl)
-            pom.artifactId = 'cpt'
+            pom.artifactId = 'cpt-lite'
             pom.project {
                 licenses {
                     license {
@@ -58,10 +58,7 @@ uploadArchives {
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.google.android.gms:play-services-gcm:11.8.0'
     compile 'com.commonsware.cwac:wakeful:1.1.0'
     compile 'com.commonsware.cwac:provider:0.5.2'
-    compile 'com.android.support:support-v4:27.0.2'
+    compile 'com.android.support:support-v4:27.0.0'
 }
-
-apply plugin: 'com.google.gms.google-services'

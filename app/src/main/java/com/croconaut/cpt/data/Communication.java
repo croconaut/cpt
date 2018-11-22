@@ -31,7 +31,6 @@ public class Communication {
     static final String EXTRA_PENDING_INTENT_TITLE = "title";
     static final String EXTRA_PENDING_INTENT_SUBJECT = "subject";
     static final String EXTRA_PENDING_INTENT_BODY = "body";
-    static final String EXTRA_PENDING_INTENT_BODY_HTML = "body_html";
     static final String EXTRA_PENDING_INTENT_BASE_URI = "base_uri";
     static final String EXTRA_PENDING_INTENT_URI_PARAM = "uri_param";
 
@@ -92,7 +91,7 @@ public class Communication {
         );
     }
 
-    public static void inviteFriend(@NonNull Context context, @NonNull String title, @NonNull String subject, @NonNull String textTemplate, @NonNull String textHtmlTemplate, @NonNull Uri baseUri, @NonNull String crocoIdUriParameter) {
+    public static void inviteFriend(@NonNull Context context, @NonNull String title, @NonNull String subject, @NonNull String textTemplate, @NonNull Uri baseUri, @NonNull String crocoIdUriParameter) {
         CptServiceStarter.startIntentService(context,
                 new Intent()
                         .setClass(context, DataLayerIntentService.class)
@@ -100,7 +99,6 @@ public class Communication {
                         .putExtra(EXTRA_PENDING_INTENT_TITLE, title)
                         .putExtra(EXTRA_PENDING_INTENT_SUBJECT, subject)
                         .putExtra(EXTRA_PENDING_INTENT_BODY, textTemplate)
-                        .putExtra(EXTRA_PENDING_INTENT_BODY_HTML, textHtmlTemplate)
                         .putExtra(EXTRA_PENDING_INTENT_BASE_URI, baseUri)
                         .putExtra(EXTRA_PENDING_INTENT_URI_PARAM, crocoIdUriParameter),
                 false

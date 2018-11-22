@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 
-import com.croconaut.cpt.link.PreferenceHelper;
+import com.croconaut.cpt.link.Settings;
 
 import java.net.InetAddress;
 
@@ -51,9 +51,10 @@ public class User implements Comparable<User>, Parcelable {
         return ssid != null && passphrase != null && isGroupOwner;
     }
 
-    boolean isClientOf(User another, PreferenceHelper helper) {
+    boolean isClientOf(User another) {
         // lower mac address => client
-        return helper.getReverseConnectionModeEnabled() ? compareTo(another) > 0 : compareTo(another) < 0;
+        Settings.getInstance().reverseConnectionMode = true;
+        return Settings.getInstance().reverseConnectionMode ? compareTo(another) > 0 : compareTo(another) < 0;
     }
 
     @Override

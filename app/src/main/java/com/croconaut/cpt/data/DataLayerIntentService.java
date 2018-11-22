@@ -10,7 +10,6 @@ import com.commonsware.cwac.wakeful.WakefulIntentService;
 import com.croconaut.cpt.common.CptServiceStarter;
 import com.croconaut.cpt.link.PreferenceHelper;
 import com.croconaut.cpt.link.handler.main.CancelConnection;
-import com.croconaut.cpt.link.handler.main.GcmSyncRequest;
 import com.croconaut.cpt.link.handler.main.NewAttachment;
 import com.croconaut.cpt.link.handler.main.NewMessage;
 import com.croconaut.cpt.link.handler.main.UpdatedIgnoredDevices;
@@ -57,10 +56,9 @@ public class DataLayerIntentService extends WakefulIntentService {
                     String title = intent.getStringExtra(Communication.EXTRA_PENDING_INTENT_TITLE);
                     String subject = intent.getStringExtra(Communication.EXTRA_PENDING_INTENT_SUBJECT);
                     String body = intent.getStringExtra(Communication.EXTRA_PENDING_INTENT_BODY);
-                    String bodyHtml = intent.getStringExtra(Communication.EXTRA_PENDING_INTENT_BODY_HTML);
                     Uri baseUri = intent.getParcelableExtra(Communication.EXTRA_PENDING_INTENT_BASE_URI);
                     String uriParam = intent.getStringExtra(Communication.EXTRA_PENDING_INTENT_URI_PARAM);
-                    inviteFriend(title, subject, body, bodyHtml, baseUri, uriParam);
+                    inviteFriend(title, subject, body, baseUri, uriParam);
                     break;
                 }
 
@@ -153,7 +151,7 @@ public class DataLayerIntentService extends WakefulIntentService {
         }
     }
 
-    private void inviteFriend(String title, String subject, String body, String bodyHtml, Uri baseUri, String uriParam) {
+    private void inviteFriend(String title, String subject, String body, Uri baseUri, String uriParam) {
         Log.v(TAG, getClass().getSimpleName() + ".inviteFriend");
 
         PreferenceHelper helper = new PreferenceHelper(this);
@@ -163,18 +161,11 @@ public class DataLayerIntentService extends WakefulIntentService {
                         .appendQueryParameter(uriParam, helper.getCrocoId())
                         .build()
         );
-        String textHtml = String.format(
-                bodyHtml,
-                baseUri.buildUpon()
-                        .appendQueryParameter(uriParam, helper.getCrocoId())
-                        .build()
-        );
 
         Intent txtIntent = new Intent(android.content.Intent.ACTION_SEND);
-        txtIntent.setType("text/plain");
+        txtIntent.setType("text/html");
         txtIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, subject);
-        txtIntent.putExtra(android.content.Intent.EXTRA_TEXT, text);
-        txtIntent.putExtra(Intent.EXTRA_HTML_TEXT, Html.fromHtml(textHtml));
+        txtIntent.putExtra(android.content.Intent.EXTRA_TEXT, Html.fromHtml(text));
         startActivity(Intent.createChooser(txtIntent, title).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
     }
 
@@ -184,22 +175,14 @@ public class DataLayerIntentService extends WakefulIntentService {
         if (className != null) {
             PreferenceHelper helper = new PreferenceHelper(this);
 
-            if (helper.getAppId() == null && helper.getClassId() == null) {
-                // first time...
-                new GcmSyncRequest().send(this, GcmSyncRequest.UPLOAD_TOKEN_AND_NAME | GcmSyncRequest.UPLOAD_FRIENDS);
-            }
-
             helper.setAppId(getPackageName());  // the rest of CPT heavily depends on this so let it be for now...
             helper.setClassId(className);
 
             if (username != null) {
                 if (!username.equals(helper.getUsername())) {
                     new UpdatedUsername().send(this, username);
-                    new GcmSyncRequest().send(this, GcmSyncRequest.UPLOAD_TOKEN_AND_NAME);
                 }
             }
-
-            new GcmSyncRequest().send(this, GcmSyncRequest.UPLOAD_TOKEN_AND_NAME);
         }
     }
 
@@ -245,12 +228,8 @@ public class DataLayerIntentService extends WakefulIntentService {
             DatabaseManager.changeDeviceTrustLevel(this, helper.getAppId(), crocoId, trustLevel);
             if (trustLevel == Communication.USER_TRUST_LEVEL_BLOCKED) {
                 new UpdatedIgnoredDevices().send(this, crocoId);
-                new GcmSyncRequest().send(this, GcmSyncRequest.UPLOAD_FRIENDS);
             } else {
                 new UpdatedIgnoredDevices().send(this, null);
-                // if we change someone's trust (blocked -> unblocked, normal -> trusted, ...) we want a sync
-                // hopefully the client app wont abuse this call...
-                new GcmSyncRequest().send(this, GcmSyncRequest.DOWNLOAD_AND_UPLOAD_EVERYTHING);
             }
         }
     }

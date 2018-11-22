@@ -23,7 +23,6 @@ public class PreferenceHelper {
 
     // cpt_ui variables
     private static final String MODE = "mode";
-    private static final String INTERNET = "internet";
     private static final String LOCAL_ONLY = "local_only";
     private static final String TRACKING = "tracking";
     private static final String NEW_API = "new_api";
@@ -56,7 +55,6 @@ public class PreferenceHelper {
         update(WIFI_TIMESTAMP);
         update(WIFI_HANDLER);
         update(WIFI_NEEDS_RESTART);
-        update(INTERNET);
         update(LOCAL_ONLY);
         update(TRACKING);
         update(NEW_API);
@@ -158,14 +156,6 @@ public class PreferenceHelper {
         store(WIFI_NEEDS_RESTART, needsRestart);
     }
 
-    public boolean getInternetEnabled() {
-        return mInternet;
-    }
-
-    public void setInternetEnabled(boolean enabled) {
-        store(INTERNET, enabled);
-    }
-
     public boolean getLocalNetworkOnlyEnabled() {
         return mLocalOnly;
     }
@@ -208,9 +198,6 @@ public class PreferenceHelper {
 
     private void store(String key, boolean value) {
         switch (key) {
-            case INTERNET:
-                mInternet = value;
-                break;
             case LOCAL_ONLY:
                 mLocalOnly = value;
                 break;
@@ -330,14 +317,11 @@ public class PreferenceHelper {
             case WIFI_NEEDS_RESTART:
                 mWifiNeedsRestart = sharedPreferences.getBoolean(key, false);
                 break;
-            case INTERNET:
-                mInternet = sharedPreferences.getBoolean(key, true);
-                break;
             case LOCAL_ONLY:
                 mLocalOnly = sharedPreferences.getBoolean(key, false);
                 break;
             case TRACKING:
-                mTracking = sharedPreferences.getBoolean(key, true);
+                mTracking = sharedPreferences.getBoolean(key, false);
                 break;
             case NEW_API:
                 mNewApi = sharedPreferences.getBoolean(key, true);
@@ -368,7 +352,6 @@ public class PreferenceHelper {
     private volatile String mClassId;
     private volatile String mName;
     private volatile String mHash;
-    private volatile boolean mInternet;
     private volatile boolean mLocalOnly;
     private volatile boolean mTracking;
     private volatile boolean mNewApi;

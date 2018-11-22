@@ -72,7 +72,7 @@ abstract class NetworkRunnable implements Runnable {
 
     protected void showCommunicationErrorNotification(boolean isP2pConnection) {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
-                .setContentTitle(context.getString(isP2pConnection ? R.string.cpt_notif_communication_p2p : R.string.cpt_notif_communication_app_server))
+                .setContentTitle(context.getString(R.string.cpt_notif_communication_p2p))
                 .setContentText(context.getString(R.string.cpt_notif_connection_error2))
                 .setDefaults(Notification.DEFAULT_ALL)
                 .setSmallIcon(R.drawable.ic_wifon)

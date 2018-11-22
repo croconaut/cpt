@@ -16,16 +16,19 @@ import com.croconaut.cpt.link.PreferenceHelper;
 public class BootstrapReceiver extends BroadcastReceiver {
     private static final String TAG = "link.bootstrap";
 
+    private static final String ACTION_REFRESH = "com.croconaut.cpt.link.action.REFRESH";
+
     private static final String ACTION_MODE = "com.croconaut.cpt.link.action.MODE";
     private static final String EXTRA_MODE = "mode";
+    private static final String EXTRA_FORCE = "force";
 
     public static final String ACTION_SETTINGS = "com.croconaut.cpt.link.action.SETTINGS";
     public static final String EXTRA_SETTINGS_NEW_API = "new_api";
     public static final String EXTRA_SETTINGS_REVERSE_MODE = "reverse_mode";
     public static final String EXTRA_SETTINGS_MODE = "mode";
+    public static final String EXTRA_SETTINGS_FORCE = "force";
     public static final String EXTRA_SETTINGS_WAKE_UP_ON_FORMED_GROUP = "wake_up";
     public static final String EXTRA_SETTINGS_TRACKING = "tracking";
-    public static final String EXTRA_SETTINGS_INTERNET = "internet";
     public static final String EXTRA_SETTINGS_LOCAL_ONLY = "local_only";
 
     public static void startActionMode(Context context, int mode) {
@@ -48,16 +51,15 @@ public class BootstrapReceiver extends BroadcastReceiver {
         ;
     }
 
-    private static Intent getRefreshIntent(Context context, int mode, PreferenceHelper preferenceHelper) {
-        return new Intent(context, LinkLayerService.class)
-                .setAction(ACTION_SETTINGS)
-                .putExtra(EXTRA_SETTINGS_NEW_API, preferenceHelper.getNewApiCallsEnabled())
-                .putExtra(EXTRA_SETTINGS_REVERSE_MODE, preferenceHelper.getReverseConnectionModeEnabled())
-                .putExtra(EXTRA_SETTINGS_MODE, mode)
-                .putExtra(EXTRA_SETTINGS_WAKE_UP_ON_FORMED_GROUP, preferenceHelper.getWakeUpOnFormedGroupEnabled())
-                .putExtra(EXTRA_SETTINGS_TRACKING, preferenceHelper.getTrackingEnabled())
-                .putExtra(EXTRA_SETTINGS_INTERNET, preferenceHelper.getInternetEnabled())
-                .putExtra(EXTRA_SETTINGS_LOCAL_ONLY, preferenceHelper.getLocalNetworkOnlyEnabled());
+    public static Intent getRefreshIntent(Context context) {
+        return getRefreshIntent(context, true);
+    }
+
+    public static Intent getRefreshIntent(Context context, boolean force) {
+        return new Intent(context, BootstrapReceiver.class)
+                .setAction(ACTION_REFRESH)
+                .putExtra(EXTRA_FORCE, force)
+        ;
     }
 
     private static boolean isEnabled(Context context) {
@@ -104,32 +106,35 @@ public class BootstrapReceiver extends BroadcastReceiver {
         String action = intent.getAction();
 
         int mode = -1;
+        boolean force = false;
         if (ACTION_MODE.equals(action)) {
             mode = intent.getIntExtra(EXTRA_MODE, -1);
             preferenceHelper.setMode(mode);
-        } else if (Intent.ACTION_BOOT_COMPLETED.equals(action)
+        } else if ((Intent.ACTION_BOOT_COMPLETED.equals(action) || ACTION_REFRESH.equals(action))
                 || (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action) && intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1) == WifiP2pManager.WIFI_P2P_STATE_ENABLED)) {
             mode = preferenceHelper.getMode();
+            force = intent.getBooleanExtra(EXTRA_FORCE, true);
         }
 
         if (mode != -1) {
-            startCpt(context, mode, preferenceHelper);
+            startCpt(context, mode, force, preferenceHelper);
         } else {
             Log.v(TAG, "mode == -1 (not starting cpt)");
         }
     }
 
-    private void startCpt(Context context, final int mode, final PreferenceHelper preferenceHelper) {
-        CptServiceStarter.startService(
-                context,
-                getRefreshIntent(context, mode, preferenceHelper),
-                false);
-    }
-
-    static void startCpt(Context context, final PreferenceHelper preferenceHelper) {
-        CptServiceStarter.startService(
-                context,
-                getRefreshIntent(context, preferenceHelper.getMode(), preferenceHelper),
-                false);
+    private void startCpt(Context context, final int mode, final boolean force, final PreferenceHelper preferenceHelper) {
+        CptServiceStarter.startService(context,
+                new Intent(context, LinkLayerService.class)
+                        .setAction(ACTION_SETTINGS)
+                        .putExtra(EXTRA_SETTINGS_NEW_API, preferenceHelper.getNewApiCallsEnabled())
+                        .putExtra(EXTRA_SETTINGS_REVERSE_MODE, preferenceHelper.getReverseConnectionModeEnabled())
+                        .putExtra(EXTRA_SETTINGS_MODE, mode)
+                        .putExtra(EXTRA_SETTINGS_FORCE, force)
+                        .putExtra(EXTRA_SETTINGS_WAKE_UP_ON_FORMED_GROUP, preferenceHelper.getWakeUpOnFormedGroupEnabled())
+                        .putExtra(EXTRA_SETTINGS_TRACKING, preferenceHelper.getTrackingEnabled())
+                        .putExtra(EXTRA_SETTINGS_LOCAL_ONLY, preferenceHelper.getLocalNetworkOnlyEnabled()),
+                false
+        );
     }
 }

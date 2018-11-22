@@ -16,7 +16,7 @@ import com.croconaut.cpt.common.CptServiceStarter;
 import com.croconaut.cpt.common.intent.LinkLayerServiceIntent;
 import com.croconaut.cpt.data.DatabaseManager;
 import com.croconaut.cpt.link.handler.Handler;
-import com.croconaut.cpt.link.handler.main.GcmSyncRequest;
+import com.croconaut.cpt.link.handler.main.DiscoveryResults;
 import com.croconaut.cpt.link.handler.main.MainHandler;
 import com.croconaut.cpt.link.handler.main.Start;
 import com.croconaut.cpt.link.handler.main.Stop;
@@ -31,7 +31,6 @@ public class LinkLayerService extends Service {
     private PowerManager mPowerManager;
     private MainHandler mMainHandler;
     private NotificationHandler mNotificationHandler;
-    private PreferenceHelper mPreferenceHelper;
     private int mStartId;
     private boolean mIsScreenReceiverRegistered;
     private PowerManager.WakeLock mWakeLock;
@@ -44,11 +43,11 @@ public class LinkLayerService extends Service {
             Log.v(TAG, "mScreenChangedReceiver.onReceive: " + intent);
 
             if (Intent.ACTION_SCREEN_ON.equals(intent.getAction())) {
-                if (mPreferenceHelper.getMode() == LinkLayerMode.BACKGROUND) {
+                if (Settings.getInstance().mode == LinkLayerMode.BACKGROUND) {
                     new Stop().send(LinkLayerService.this, false, mStartId);
                 }
             } else if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
-                if (mPreferenceHelper.getMode() == LinkLayerMode.BACKGROUND) {
+                if (Settings.getInstance().mode == LinkLayerMode.BACKGROUND) {
                     new Start().send(LinkLayerService.this, mStartId);
                 }
             }
@@ -74,9 +73,7 @@ public class LinkLayerService extends Service {
         mNotificationHandler = new NotificationHandler(this);
         mNotificationHandler.start();
 
-        mPreferenceHelper = new PreferenceHelper(this);
-        // we're OFF by default; the client app is supposed to start CPT with CptControler.setMode()
-        mPreferenceHelper.setMode(LinkLayerMode.OFF);
+        Settings.getInstance().mode = -1;
 
         mWifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, getClass().getSimpleName());
         mWifiLock.acquire();
@@ -139,73 +136,82 @@ public class LinkLayerService extends Service {
 
         mStartId = startId;
 
-        int oldMode = mPreferenceHelper.getMode();
-        boolean oldUseInternet = mPreferenceHelper.getInternetEnabled();
-        boolean oldAllowTracking = mPreferenceHelper.getTrackingEnabled();
+        Settings settings = null;
+        int oldMode = Settings.getInstance().mode;
+        boolean oldAllowTracking = Settings.getInstance().allowTracking;
         if (BootstrapReceiver.ACTION_SETTINGS.equals(intent.getAction())) {
-            mPreferenceHelper.setReverseConnectionModeEnabled(intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_REVERSE_MODE, false));
-            mPreferenceHelper.setNewApiCallsEnabled(intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_NEW_API, false));
-            mPreferenceHelper.setMode(intent.getIntExtra(BootstrapReceiver.EXTRA_SETTINGS_MODE, -1));
-            mPreferenceHelper.setWakeUpOnFormedGroupEnabled(intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_WAKE_UP_ON_FORMED_GROUP, true));
-            mPreferenceHelper.setInternetEnabled(intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_INTERNET, true));
-            mPreferenceHelper.setLocalNetworkOnlyEnabled(intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_LOCAL_ONLY, false));
-            mPreferenceHelper.setTrackingEnabled(intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_TRACKING, true));
+            settings = Settings.getInstance();
+            settings.reverseConnectionMode = intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_REVERSE_MODE, false);
+            settings.useNewApi = intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_NEW_API, false);
+            settings.mode = intent.getIntExtra(BootstrapReceiver.EXTRA_SETTINGS_MODE, -1);
+            settings.wakeUpOnFormedGroup = intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_WAKE_UP_ON_FORMED_GROUP, true);
+            settings.force = intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_FORCE, false);
+            settings.useLocalOnly = intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_LOCAL_ONLY, false);
+            settings.allowTracking = intent.getBooleanExtra(BootstrapReceiver.EXTRA_SETTINGS_TRACKING, true);
+        } else if ((flags & android.app.Service.START_FLAG_REDELIVERY) != 0) {
+            Log.w(TAG, "Redelivery of a non-settings intent");
+            settings = Settings.getInstance();
+            Settings intentSettings = (Settings) intent.getSerializableExtra(LinkLayerServiceIntent.EXTRA_CPT_SETTINGS);
+            if (intentSettings != null) {
+                settings.reverseConnectionMode = intentSettings.reverseConnectionMode;
+                settings.useNewApi = intentSettings.useNewApi;
+                settings.mode = intentSettings.mode;
+                settings.wakeUpOnFormedGroup = intentSettings.wakeUpOnFormedGroup;
+                settings.force = intentSettings.force;
+                settings.useLocalOnly = intentSettings.useLocalOnly;
+                settings.allowTracking = intentSettings.allowTracking;
+            } else {
+                Log.w(TAG, "Redelivery with intentSettings == null");
+            }
+        }
 
+        // mWakeLock should be in charge now
+        CptServiceStarter.finish(this, intent);
+
+        if (settings != null) {
             Log.e(TAG, "New settings");
             Log.e(TAG, "============");
-            Log.e(TAG, "reverseConnectionMode: " + mPreferenceHelper.getReverseConnectionModeEnabled());
-            Log.e(TAG, "useNewApi: " + mPreferenceHelper.getNewApiCallsEnabled() + " (available API: " + Build.VERSION.SDK_INT + ")");
-            Log.e(TAG, "mode: " + mPreferenceHelper.getMode());
-            Log.e(TAG, "wakeUpOnFormedGroup: " + mPreferenceHelper.getWakeUpOnFormedGroupEnabled());
-            Log.e(TAG, "useInternet: " + mPreferenceHelper.getInternetEnabled());
-            Log.e(TAG, "useLocalOnly: " + mPreferenceHelper.getLocalNetworkOnlyEnabled());
-            Log.e(TAG, "allowTracking: " + mPreferenceHelper.getTrackingEnabled());
+            Log.e(TAG, "reverseConnectionMode: " + settings.reverseConnectionMode);
+            Log.e(TAG, "useNewApi: " + settings.useNewApi + " (available API: " + Build.VERSION.SDK_INT + ")");
+            Log.e(TAG, "mode: " + settings.mode);
+            Log.e(TAG, "wakeUpOnFormedGroup: " + settings.wakeUpOnFormedGroup);
+            Log.e(TAG, "useLocalOnly: " + settings.useLocalOnly);
+            Log.e(TAG, "allowTracking: " + settings.allowTracking);
 
             // watch screen changes if necessary
-            if (mPreferenceHelper.getMode() == LinkLayerMode.BACKGROUND) {
+            if (settings.mode == LinkLayerMode.BACKGROUND) {
                 registerForScreenChanges();
             } else {
                 unregisterForScreenChanges();
             }
 
             // if re-enabled tracking, get location ASAP
-            if (mPreferenceHelper.getTrackingEnabled() && !oldAllowTracking) {
+            if (settings.allowTracking && !oldAllowTracking) {
                 DatabaseManager.obtainLocation(this);
             }
 
-            // XXX: there used to be a 'force' parameter but it was always set within ACTION_SETTINGS
-//            if (mPreferenceHelper.getMode() != oldMode) {
+            if (settings.mode != oldMode || settings.force) {
                 //noinspection deprecation
-                if (mPreferenceHelper.getMode() == LinkLayerMode.FOREGROUND
-                        || (mPreferenceHelper.getMode() == LinkLayerMode.BACKGROUND && !mPowerManager.isScreenOn())) {
+                if (settings.mode == LinkLayerMode.FOREGROUND || (settings.mode == LinkLayerMode.BACKGROUND && !mPowerManager.isScreenOn())) {
                     new Start().send(this, startId);
                 } else {
-                    new Stop().send(this, mPreferenceHelper.getMode() == LinkLayerMode.OFF, startId);
+                    new Stop().send(this, settings.mode == LinkLayerMode.OFF, startId);
                 }
-//            } else {
-//                Log.d(TAG, "Same mode, not starting/stopping");
-//                // don't sync anything actually, just store pass startId on
-//                Intent syncIntent = new GcmSyncRequest().getPlainIntent(0);
-//                syncIntent.putExtra(LinkLayerServiceIntent.EXTRA_START_ID, startId);
-//                mMainHandler.getReceiver().onReceive(this, syncIntent);
-//            }
-
-            if (mPreferenceHelper.getInternetEnabled() != oldUseInternet && mPreferenceHelper.getInternetEnabled()) {
-                // if we enabled useInternet, sync everything
-                Intent syncIntent = new GcmSyncRequest().getPlainIntent(GcmSyncRequest.DOWNLOAD_AND_UPLOAD_EVERYTHING | GcmSyncRequest.UPLOAD_TOKEN_AND_NAME);
+            } else {
+                Log.d(TAG, "Same mode, not starting/stopping");
+                // don't sync anything actually, just store pass startId on
+                Intent syncIntent = new DiscoveryResults().getPlainIntent(null);
                 syncIntent.putExtra(LinkLayerServiceIntent.EXTRA_START_ID, startId);
                 mMainHandler.getReceiver().onReceive(this, syncIntent);
             }
-        } else if ((flags & android.app.Service.START_FLAG_REDELIVERY) != 0) {
-            int what = DatabaseManager.getGcmTransactionRequestsMask(this);
-            Log.w(TAG, "Redelivery, pending gcm sync request(s): " + what);
-            Intent syncIntent = new GcmSyncRequest().getPlainIntent(what);
+        }
+
+        if ((flags & android.app.Service.START_FLAG_REDELIVERY) != 0) {
+            Log.w(TAG, "Redelivery");
+            Intent syncIntent = new DiscoveryResults().getPlainIntent(null);
             syncIntent.putExtra(LinkLayerServiceIntent.EXTRA_START_ID, startId);
             mMainHandler.getReceiver().onReceive(this, syncIntent);
         }
-
-        // mWakeLock should be in charge now
-        CptServiceStarter.finish(this, intent);
 
         if (!BootstrapReceiver.ACTION_SETTINGS.equals(intent.getAction())) {
             intent.putExtra(LinkLayerServiceIntent.EXTRA_START_ID, startId);

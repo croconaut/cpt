@@ -1,7 +1,5 @@
 package com.croconaut.cpt.link.handler.main;
 
-import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -10,15 +8,13 @@ import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
-import com.croconaut.cpt.R;
-import com.croconaut.cpt.common.NotificationId;
 import com.croconaut.cpt.common.State;
 import com.croconaut.cpt.common.intent.CptBroadcastReceiver;
 import com.croconaut.cpt.data.CptClientCommunication;
 import com.croconaut.cpt.data.DatabaseManager;
+import com.croconaut.cpt.link.Settings;
 import com.croconaut.cpt.link.handler.DropConnection;
 import com.croconaut.cpt.link.handler.Handler;
 import com.croconaut.cpt.link.handler.connection.ConnectionHandler;
@@ -28,18 +24,11 @@ import com.croconaut.cpt.link.handler.notification.PublishProgress;
 import com.croconaut.cpt.link.handler.p2p.P2pHandler;
 import com.croconaut.cpt.link.handler.p2p.UpdatedNetworkState;
 import com.croconaut.cpt.link.handler.p2p.UpdatedTargetAp;
-import com.croconaut.cpt.network.AppServerSyncDownloadAttachmentsService;
-import com.croconaut.cpt.network.AppServerSyncDownloadMessagesService;
-import com.croconaut.cpt.network.AppServerSyncUploadFriendsService;
-import com.croconaut.cpt.network.AppServerSyncUploadLocalMessagesWithAttachmentsService;
-import com.croconaut.cpt.network.AppServerSyncUploadNonLocalMessagesService;
-import com.croconaut.cpt.network.AppServerSyncUploadTokenService;
 import com.croconaut.cpt.network.ClientIntroductionRunnable;
 import com.croconaut.cpt.network.ClientSyncAttachmentsService;
 import com.croconaut.cpt.network.ClientSyncMessagesService;
 import com.croconaut.cpt.network.ServerListeningThread;
 import com.croconaut.cpt.ui.BootstrapReceiver;
-import com.croconaut.cpt.ui.LinkLayerMode;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -72,7 +61,6 @@ public class MainHandler extends Handler {
     private int mStartId = -1;
     private NetworkInfo mPendingNetworkInfo;
     private boolean mIsPendingWifiRestart;
-    private int mPendingGcmSync;
     private User mUserToConnectTo;
     private long mLatestNewMessageTimestamp;
     private IgnoredHashesManager mIgnoredHashesManager = new IgnoredHashesManager();
@@ -149,15 +137,6 @@ public class MainHandler extends Handler {
         }
 
         @Override
-        HandlerState onGcmSyncRequest(Context context, int startId, int what) {
-            mStartId = startId;
-            // wait for RESTART.onFinished()
-            DatabaseManager.addGcmTransactionRequest(context, System.currentTimeMillis(), what);
-            mPendingGcmSync |= what;
-            return this;
-        }
-
-        @Override
         HandlerState onFailure(Context context) {
             // pretend like nothing has happened... the handler is supposed to clean everything up
             return onFinished(context);
@@ -184,6 +163,11 @@ public class MainHandler extends Handler {
         HandlerState onDiscoveryResultsAvailable(Context context, int startId, Collection<User> users) {
             Log.v(TAG, toString() + ".onDiscoveryResultsAvailable");
             mStartId = startId;
+
+            if (users == null) {
+                // don't do anything (sync intent)
+                return this;
+            }
 
             final String hash = mPreferenceHelper.getHash();
             final User me = new User(mPreferenceHelper.getCrocoId());
@@ -216,18 +200,18 @@ public class MainHandler extends Handler {
                         && ((!user.hash.equals(hash) && !mIgnoredHashesManager.isHashIgnored(user.crocoId, user.hash))
                         || me.crocoId.equals(user.targetAp)
                         || isPendingLocalRecipient(user.crocoId))) {
-                    if (!mPreferenceHelper.getLocalNetworkOnlyEnabled()
-                            && ((!isOnLocalNetwork && user.networkAddress == null && (me.isClientOf(user, mPreferenceHelper) || user.isReady())) // we aren't on network, he isn't on network => compare MACs
+                    if (!Settings.getInstance().useLocalOnly
+                            && ((!isOnLocalNetwork && user.networkAddress == null && (me.isClientOf(user) || user.isReady())) // we aren't on network, he isn't on network => compare MACs
                                 || (!isOnLocalNetwork && user.networkAddress != null))) {  // we aren't on network, he is => we connect
                         Log.v(TAG, "Adding device to connect: " + user);
                         availableServers.add(user);
-                    } else if (!mPreferenceHelper.getLocalNetworkOnlyEnabled()
-                            && ((!isOnLocalNetwork && user.networkAddress == null && user.isClientOf(me, mPreferenceHelper))    // we aren't on network, he isn't on network => compare MACs
+                    } else if (!Settings.getInstance().useLocalOnly
+                            && ((!isOnLocalNetwork && user.networkAddress == null && user.isClientOf(me))    // we aren't on network, he isn't on network => compare MACs
                                 || (isOnLocalNetwork && user.networkAddress == null))) {    // we're on network, he is not => create server
                         Log.v(TAG, "Adding device to create group for: " + user);
                         usersRequestingGroup.add(user);
                     } else if (isOnLocalNetwork && user.networkAddress != null  // we're on network, he's on network => exchange data
-                            && ((!user.hash.equals(hash) && me.isClientOf(user, mPreferenceHelper)) || (user.hash.equals(hash) && isPendingLocalRecipient(user.crocoId)))) {
+                            && ((!user.hash.equals(hash) && me.isClientOf(user)) || (user.hash.equals(hash) && isPendingLocalRecipient(user.crocoId)))) {
                         if (!mConnectedClients.containsKey(user.crocoId)) {
                             mConnectedClients.put(user.crocoId, new ConnectedClient());
                             Log.d(TAG, "Starting an introduction thread connected to " + user.networkAddress.getHostAddress());
@@ -245,7 +229,7 @@ public class MainHandler extends Handler {
                         } else {
                             Log.d(TAG, "Not starting already started introduction thread to " + user.networkAddress.getHostAddress());
                         }
-                    } else if (!mPreferenceHelper.getLocalNetworkOnlyEnabled()) {
+                    } else if (!Settings.getInstance().useLocalOnly) {
                         Log.d(TAG, "Expecting an introduction thread from " + user.networkAddress.getHostAddress());
                     } else {
                         Log.d(TAG, "Skipping device (local only): " + user);
@@ -501,7 +485,6 @@ public class MainHandler extends Handler {
         @Override
         HandlerState onFailure(Context context) {
             hasGroupClientConnected = false;
-            mPendingGcmSync |= GcmSyncRequest.UPLOAD_NON_LOCAL_MESSAGES;
             return super.onFailure(context);
         }
 
@@ -516,10 +499,6 @@ public class MainHandler extends Handler {
         @Override
         HandlerState onNetworkSyncServiceFinished(Context context, String crocoId, int what, long timeStampSuccess) {
             super.onNetworkSyncServiceFinished(context, crocoId, what, timeStampSuccess);
-
-            mPendingGcmSync |= GcmSyncRequest.UPLOAD_NON_LOCAL_MESSAGES;
-            // in case of GROUP, force sync because it would be very inefficient to wait for the handler's end
-            sync(context);
 
             if (hasGroupClientConnected && mConnectedClients.isEmpty()) {
                 // avoid misleading the other side to create a group / make a connection attempt
@@ -554,7 +533,6 @@ public class MainHandler extends Handler {
         @Override
         HandlerState onFailure(Context context) {
             hasDisconnected = false;
-            mPendingGcmSync |= GcmSyncRequest.UPLOAD_NON_LOCAL_MESSAGES;
             return super.onFailure(context);
         }
 
@@ -584,19 +562,8 @@ public class MainHandler extends Handler {
         }
 
         @Override
-        HandlerState onGcmSyncRequest(Context context, int startId, int what) {
-            mStartId = startId;
-            // don't do unnecessary syncs
-            DatabaseManager.addGcmTransactionRequest(context, System.currentTimeMillis(), what);
-            mPendingGcmSync |= what;
-            return this;
-        }
-
-        @Override
         HandlerState onNetworkSyncServiceFinished(Context context, String crocoId, int what, long timeStampSuccess) {
             super.onNetworkSyncServiceFinished(context, crocoId, what, timeStampSuccess);
-
-            mPendingGcmSync |= GcmSyncRequest.UPLOAD_NON_LOCAL_MESSAGES;
 
             if (mConnectedClients.isEmpty()) {
                 // avoid misleading the other side to create a group / make a connection attempt
@@ -633,15 +600,6 @@ public class MainHandler extends Handler {
 
             mCurrentHandler.start();
             return CONNECTION.onNetworkStateChanged(context, mConnectivityManager.getActiveNetworkInfo());
-        }
-
-        @Override
-        HandlerState onGcmSyncRequest(Context context, int startId, int what) {
-            mStartId = startId;
-            // don't do unnecessary syncs
-            DatabaseManager.addGcmTransactionRequest(context, System.currentTimeMillis(), what);
-            mPendingGcmSync |= what;
-            return this;
         }
     };
 
@@ -698,12 +656,10 @@ public class MainHandler extends Handler {
             Log.v(TAG, toString() + ".onFinished: "
                     + (mCurrentHandler != null ? mCurrentHandler.getClass().getSimpleName() : "(null handler)") + " (" + mWifiP2pState + " / " + mIsPendingStop + " / " + mIsHardStop + ")");
 
-            if (mPendingGcmSync != 0) {
-                // even if wifi is off, request a sync -- if we switch off cpt now, the sync will still take place when network is up
-                sync(context);
-            }
-
+            boolean isWifiOff = false;
             if (mWifiP2pState == WifiP2pManager.WIFI_P2P_STATE_DISABLED || mWifiManager.getWifiState() == WifiManager.WIFI_STATE_DISABLED) {
+                isWifiOff = true;
+
                 if (mWifiP2pState == WifiP2pManager.WIFI_P2P_STATE_DISABLED) {
                     mWifiP2pState = -1;
                 } else {
@@ -721,11 +677,12 @@ public class MainHandler extends Handler {
                     disableBootstrap = mIsHardStop;
                 }
                 // we definitely want to restore the handler when wifi is on again, so no resetCurrentHandler() calling here
-                return disable(context, disableBootstrap, true, true);
+                return disable(context, disableBootstrap, true, isWifiOff);
             } else {
-                if (mPreferenceHelper.getMode() == LinkLayerMode.OFF) {
+                if (Settings.getInstance().mode == -1) {
                     // we got here from a new message and/or a sync request while being OFF
-                    return disable(context, false, true, false);
+                    Log.d(TAG, "Settings.mode = " + Settings.getInstance().mode);
+                    return disable(context, false, true, isWifiOff);
                 } else if (mIsPendingStop) {
                     // the stop command has higher priority, before handleWifiOn() (it could disable wifi and we could stop after that)
 
@@ -735,7 +692,7 @@ public class MainHandler extends Handler {
                     new P2pHandler(context, mServerListeningThread.getPort()).removeService();
                     new ConnectionHandler(context).disconnect();
                     resetCurrentHandler();
-                    return disable(context, mIsHardStop, mIsHardStop, false);
+                    return disable(context, mIsHardStop, mIsHardStop, isWifiOff);
                 } else {
                     if (mWifiP2pState == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
                         mWifiP2pState = -1;
@@ -789,19 +746,6 @@ public class MainHandler extends Handler {
             if (disableService) {
                 if (!mService.stopSelfResult(mStartId)) {
                     Log.w(TAG, "stopSelfResult() has failed, there's either P2P ENABLED or a mode pending: doing nothing");
-                }
-                if (!isWifiOff) {
-                    NotificationCompat.Builder nb = new NotificationCompat.Builder(context)
-                            .setContentIntent(CptClientCommunication.getCptModeRequestPendingIntent(context, mPreferenceHelper, LinkLayerMode.FOREGROUND))
-                            .setSmallIcon(R.drawable.ic_wifon)
-                            .setContentTitle(context.getResources().getString(R.string.cpt_notif_no_p2p_title))
-                            .setContentText(context.getResources().getString(R.string.cpt_notif_no_p2p_desc))
-                            .setProgress(0, 0, true)
-                            ;
-                    Notification notification = nb.build();
-
-                    NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                    nm.notify(NotificationId.WIFI_P2P_OFF, notification);
                 }
             } else {
                 // the only option
@@ -958,10 +902,6 @@ public class MainHandler extends Handler {
             mStartId = startId;
 
             if (to == null) {
-                // first schedule for the app server
-                mPendingGcmSync |= GcmSyncRequest.UPLOAD_NON_LOCAL_MESSAGES;
-                sync(context);
-
                 mLatestNewMessageTimestamp = System.currentTimeMillis();
                 for (Map.Entry<String, ConnectedClient> entry : mConnectedClients.entrySet()) {
                     String crocoId = entry.getKey();
@@ -970,9 +910,6 @@ public class MainHandler extends Handler {
                     connectedClient.finishedServices &= ~NetworkSyncServiceFinished.CLIENT_MESSAGES;
                 }
             } else {
-                // set it for sync but don't do it unless needed (it's possible the sync thread fires up when something else calls sync() but it wont connect)
-                mPendingGcmSync |= GcmSyncRequest.UPLOAD_LOCAL_MESSAGES_WITH_ATTACHMENTS;
-
                 if (mConnectedClients.get(to) != null) {
                     ConnectedClient connectedClient = mConnectedClients.get(to);
                     ClientSyncMessagesService.sync(context, to, connectedClient.socketAddress);
@@ -980,8 +917,6 @@ public class MainHandler extends Handler {
                 } else {
                     Log.v(TAG, "Added new local message recipient: " + to);
                     invalidateLocalMessagesRecipients();    // the message has been stored in the db already
-
-                    sync(context);
                 }
             }
 
@@ -992,9 +927,6 @@ public class MainHandler extends Handler {
             Log.v(TAG, toString() + ".onNewAttachment");
             mStartId = startId;
 
-            // set it for sync but don't do it unless needed (it's possible the sync thread fires up when something else calls sync() but it wont connect)
-            mPendingGcmSync |= GcmSyncRequest.DOWNLOAD_ATTACHMENTS;
-
             if (mConnectedClients.get(from) != null) {
                 ConnectedClient connectedClient = mConnectedClients.get(from);
                 ClientSyncAttachmentsService.sync(context, from, connectedClient.socketAddress);
@@ -1002,18 +934,8 @@ public class MainHandler extends Handler {
             } else {
                 Log.v(TAG, "Adding new attachment request recipient: " + from);
                 invalidateLocalMessagesRecipients();    // the download uri has been stored in the db already
-
-                sync(context);
             }
 
-            return this;
-        }
-
-        HandlerState onGcmSyncRequest(Context context, int startId, int what) {
-            mStartId = startId;
-            DatabaseManager.addGcmTransactionRequest(context, System.currentTimeMillis(), what);
-            mPendingGcmSync |= what;
-            sync(context);
             return this;
         }
 
@@ -1059,9 +981,6 @@ public class MainHandler extends Handler {
                 mStartId = startId;
             }
 
-            AppServerSyncDownloadMessagesService.cancelSync(context);
-            AppServerSyncUploadNonLocalMessagesService.cancelSync(context);
-
             // if the croco id is connected to us (local network, group)
             mServerListeningThread.cancel(crocoId);
 
@@ -1070,9 +989,6 @@ public class MainHandler extends Handler {
             if (crocoId != null) {
                 // null means 'messages only'
                 ClientSyncAttachmentsService.cancelSync(context, crocoId);
-
-                AppServerSyncUploadLocalMessagesWithAttachmentsService.cancelSync(context);
-                AppServerSyncDownloadAttachmentsService.cancelSync(context);
             }
 
             invalidateLocalMessagesRecipients();
@@ -1231,54 +1147,6 @@ public class MainHandler extends Handler {
 
                 mWifiManager.setWifiEnabled(true);
             }
-        }
-
-        protected void sync(Context context) {
-            Log.v(TAG, toString() + ".sync");
-
-            // TODO: use API 21 network requests
-            boolean isInternetConnectivityAvailable = false;
-            boolean fullSync = false;
-
-            NetworkInfo activeNetworkInfo = mConnectivityManager.getActiveNetworkInfo();
-            if (activeNetworkInfo != null && activeNetworkInfo.isConnected()) {
-                if (activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI) {
-                    String connectionSsid = getConnectionSsid();
-                    if (connectionSsid != null && !isWifiDirectSsid(connectionSsid)) {
-                        isInternetConnectivityAvailable = true;
-                        fullSync = true;
-                    }
-                } else {
-                    isInternetConnectivityAvailable = true;
-                    fullSync = false;
-                }
-            }
-
-            Log.d(TAG, "mPendingGcmSync=" + mPendingGcmSync
-                    + ", isInternetConnectivityAvailable="+ isInternetConnectivityAvailable
-                    + ", fullSync=" + fullSync
-            );
-
-            if ((mPendingGcmSync & GcmSyncRequest.DOWNLOAD_MESSAGES_AND_ATTACHMENTS_DELIVERY) != 0) {
-                AppServerSyncDownloadMessagesService.sync(context, isInternetConnectivityAvailable, fullSync);
-            }
-            if ((mPendingGcmSync & GcmSyncRequest.UPLOAD_TOKEN_AND_NAME) != 0) {
-                AppServerSyncUploadTokenService.sync(context, isInternetConnectivityAvailable, fullSync);
-            }
-            if ((mPendingGcmSync & GcmSyncRequest.UPLOAD_NON_LOCAL_MESSAGES) != 0) {
-                AppServerSyncUploadNonLocalMessagesService.sync(context, isInternetConnectivityAvailable, fullSync);
-            }
-            if ((mPendingGcmSync & GcmSyncRequest.UPLOAD_LOCAL_MESSAGES_WITH_ATTACHMENTS) != 0) {
-                AppServerSyncUploadLocalMessagesWithAttachmentsService.sync(context, isInternetConnectivityAvailable, fullSync);
-            }
-            if ((mPendingGcmSync & GcmSyncRequest.DOWNLOAD_ATTACHMENTS) != 0) {
-                AppServerSyncDownloadAttachmentsService.sync(context, isInternetConnectivityAvailable, fullSync);
-            }
-            if ((mPendingGcmSync & GcmSyncRequest.UPLOAD_FRIENDS) != 0) {
-                AppServerSyncUploadFriendsService.sync(context, isInternetConnectivityAvailable, fullSync);
-            }
-
-            mPendingGcmSync = 0;
         }
 
         protected boolean isPendingLocalRecipient(String crocoId) {

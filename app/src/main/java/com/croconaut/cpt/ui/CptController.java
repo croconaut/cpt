@@ -25,23 +25,15 @@ public class CptController {
 
     public void setTrackingEnabled(boolean enable) {
         mPreferenceHelper.setTrackingEnabled(enable);
-        BootstrapReceiver.startCpt(mContext, mPreferenceHelper);
+        mContext.sendBroadcast(BootstrapReceiver.getRefreshIntent(mContext));
     }
     public boolean getTrackingEnabled() {
         return mPreferenceHelper.getTrackingEnabled();
     }
 
-    public void setInternetEnabled(boolean enable) {
-        mPreferenceHelper.setInternetEnabled(enable);
-        BootstrapReceiver.startCpt(mContext, mPreferenceHelper);
-    }
-    public boolean getInternetEnabled() {
-        return mPreferenceHelper.getInternetEnabled();
-    }
-
     public void setLocalNetworkOnlyEnabled(boolean enable) {
         mPreferenceHelper.setLocalNetworkOnlyEnabled(enable);
-        BootstrapReceiver.startCpt(mContext, mPreferenceHelper);
+        mContext.sendBroadcast(BootstrapReceiver.getRefreshIntent(mContext));
     }
     public boolean getLocalNetworkOnlyEnabled() {
         return mPreferenceHelper.getLocalNetworkOnlyEnabled();
@@ -54,7 +46,7 @@ public class CptController {
 
     void setReverseModeEnabled(boolean enable) {
         mPreferenceHelper.setReverseConnectionModeEnabled(enable);
-        BootstrapReceiver.startCpt(mContext, mPreferenceHelper);
+        mContext.sendBroadcast(BootstrapReceiver.getRefreshIntent(mContext));
     }
 
     boolean getNewApiEnabled() {
@@ -63,7 +55,7 @@ public class CptController {
 
     void setNewApiEnabled(boolean enable) {
         mPreferenceHelper.setNewApiCallsEnabled(enable);
-        BootstrapReceiver.startCpt(mContext, mPreferenceHelper);
+        mContext.sendBroadcast(BootstrapReceiver.getRefreshIntent(mContext));
     }
 
     boolean isNewApiSupported() {
@@ -76,7 +68,7 @@ public class CptController {
 
     public void setDimScreenWorkaroundEnabled(boolean enable) {
         mPreferenceHelper.setWakeUpOnFormedGroupEnabled(enable);
-        BootstrapReceiver.startCpt(mContext, mPreferenceHelper);
+        mContext.sendBroadcast(BootstrapReceiver.getRefreshIntent(mContext));
     }
 
     public boolean isDimScreenWorkaroundRecommended() {

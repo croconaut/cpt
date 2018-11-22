@@ -15,7 +15,7 @@ import java.util.ArrayList;
 
 class MainHandlerReceiver extends CptBroadcastReceiver implements
         // service
-        GcmSyncRequest.Receiver, NewMessage.Receiver, RestartTimerExpired.Receiver,
+        NewMessage.Receiver, RestartTimerExpired.Receiver,
         // local
         Start.Receiver, Stop.Receiver, TimerExpired.Receiver, HandlerFinished.Receiver, HandlerFailed.Receiver, DiscoveryResults.Receiver,
         NetworkSyncServiceFinished.Receiver, UpdatedIgnoredDevices.Receiver, CancelConnection.Receiver, NewConnectableClient.Receiver,
@@ -42,7 +42,6 @@ class MainHandlerReceiver extends CptBroadcastReceiver implements
         addIntent(new NetworkStateChanged());
         addIntent(new WifiP2pStateChanged());
         // global service intents
-        addIntent(new GcmSyncRequest());
         addIntent(new NewMessage());
         addIntent(new NewAttachment());
         addIntent(new RestartTimerExpired());
@@ -108,11 +107,6 @@ class MainHandlerReceiver extends CptBroadcastReceiver implements
     @Override
     public void onNewMessage(Context context, int startId, String to) {
         setState(state.onNewMessage(context, startId, to));
-    }
-
-    @Override
-    public void onGcmSyncRequest(Context context, int startId, int what) {
-        setState(state.onGcmSyncRequest(context, startId, what));
     }
 
     @Override

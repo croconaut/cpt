@@ -16,8 +16,6 @@
     <string name="cpt_notif_DISCOVERING_WAITING_FOR_GO">Waiting for GO</string>
     <string name="cpt_notif_DISCOVERING_WAITING_FOR_GO_AND_CREDENTIALS">Waiting for GO/SSID</string>
     <string name="cpt_notif_SCANNING">Wi-Fi scan</string>
-    <string name="cpt_notif_internet_download">Downloading from server (%1$s/s)</string>
-    <string name="cpt_notif_internet_upload">Uploading to server (%1$s/s)</string>
     <string name="cpt_notif_p2p_download">Downloading from device (%1$s/s)</string>
     <string name="cpt_notif_p2p_upload">Uploading to device (%1$s/s)</string>
 
@@ -30,7 +28,4 @@
     <string name="cpt_notif_connection_error1">%1$s: error while connecting</string>
     <string name="cpt_notif_connection_error2">Tap to send logs</string>
     <string name="cpt_notif_communication_p2p">P2P: error during communication</string>
-    <string name="cpt_notif_communication_app_server">App server: error during communication</string>
-    <string name="cpt_notif_no_p2p_title">Internet mode</string>
-    <string name="cpt_notif_no_p2p_desc">Tap to enable P2P mode</string>
 </resources>

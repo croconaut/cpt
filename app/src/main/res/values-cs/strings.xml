@@ -1,8 +1,6 @@
 <resources>
     <string name="cpt_notif_p2p_download">Sťahovanie z mobilu (%1$s/s)</string>
-    <string name="cpt_notif_internet_download">Sťahovanie zo servera (%1$s/s)</string>
     <string name="cpt_notif_p2p_upload">Odosielanie na mobil (%1$s/s)</string>
-    <string name="cpt_notif_internet_upload">Odosielanie na server (%1$s/s)</string>
 
     <string name="cpt_notif_DISCOVERING">Vyhľadávanie (kliknutím vypni)</string>
     <string name="cpt_notif_DISCOVERING_WAITING_FOR_GO_AND_CREDENTIALS">Čakanie na GO/SSID</string>
@@ -29,8 +27,5 @@
     <string name="cpt_logs_chooser">Pošli logy emailom</string>
     <string name="cpt_notif_connection_error1">Spojenie na %1$s sa nepodarilo</string>
     <string name="cpt_notif_connection_error2">Kliknutím pošleš logy</string>
-    <string name="cpt_notif_communication_app_server">App server: chyba počas komunikácie</string>
     <string name="cpt_notif_communication_p2p">P2P: chyba počas komunikácie</string>
-    <string name="cpt_notif_no_p2p_title">Internetový režim</string>
-    <string name="cpt_notif_no_p2p_desc">Kliknutím aktivuj P2P režim</string>
 </resources>

@@ -10,6 +10,7 @@ import android.os.PowerManager;
 import android.util.Log;
 
 import com.croconaut.cpt.common.State;
+import com.croconaut.cpt.link.Settings;
 import com.croconaut.cpt.link.handler.Handler;
 import com.croconaut.cpt.link.handler.main.HandlerFailed;
 import com.croconaut.cpt.link.handler.main.HandlerFinished;
@@ -243,7 +244,7 @@ public class GroupHandler extends Handler {
                             Log.d(TAG, "0 clients reported, waiting for the timer to expire...");
                         }
                     } else if (clients > mGroupClientsCount) {
-                        if (mPreferenceHelper.getWakeUpOnFormedGroupEnabled()) {
+                        if (Settings.getInstance().wakeUpOnFormedGroup) {
                             // somebody has connected, wake up device for a moment
                             Log.i(TAG, "Acquiring the wake lock");
                             mWakeLock.acquire();

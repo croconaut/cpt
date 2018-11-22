@@ -17,7 +17,6 @@ public class SQLiteCptHelper extends SQLiteOpenHelper {
     public static final String TABLE_NAME_CPT_DEVICES_TRUST = "cpt_devices_trust";
     public static final String TABLE_NAME_CPT_ATTACHMENTS_TO_DOWNLOAD = "cpt_attachments_download";
     public static final String TABLE_NAME_CPT_ATTACHMENTS_TO_UPLOAD = "cpt_attachments_upload";
-    public static final String TABLE_NAME_CPT_GCM_TRANSACTIONS = "cpt_gcm_transactions";
     // Hidden column rowid
     public static final String COLUMN_NAME_ROWID = "rowid";
 
@@ -59,10 +58,6 @@ public class SQLiteCptHelper extends SQLiteOpenHelper {
     public static final String COLUMN_NAME_UPLOAD_FLAG_SENT_TO_RECIPIENT = "flag_sent_to_recipient";
     public static final String COLUMN_NAME_UPLOAD_FLAG_SENT_TO_APP_SERVER = "flag_sent_to_app_server";
     public static final String COLUMN_NAME_UPLOAD_FLAG_DELIVERED = "flag_delivered";
-
-    // TABLE_NAME_CPT_GCM_TRANSACTIONS
-    public static final String COLUMN_NAME_GCM_TIME = "time";
-    public static final String COLUMN_NAME_GCM_MASK = "gcm_mask";   // GcmSyncRequest constants
 
     // some convenient defines
     private static final String MSG_HEADER_SCHEMA
@@ -227,16 +222,6 @@ public class SQLiteCptHelper extends SQLiteOpenHelper {
         } catch (SQLException e) {
             Log.e(TAG, "Error on create table '" + TABLE_NAME_CPT_ATTACHMENTS_TO_UPLOAD + "' in db '" + DATABASE_NAME + "'", e);
         }
-
-        try {   // create table
-            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME_CPT_GCM_TRANSACTIONS + " ("
-                    + COLUMN_NAME_GCM_TIME + " integer not null, "
-                    + COLUMN_NAME_GCM_MASK + " integer not null"
-                    + ");"
-            );
-        } catch (SQLException e) {
-            Log.e(TAG, "Error on create table '" + TABLE_NAME_CPT_GCM_TRANSACTIONS + "' in db '" + DATABASE_NAME + "'", e);
-        }
     }
 
     @Override
@@ -252,7 +237,6 @@ public class SQLiteCptHelper extends SQLiteOpenHelper {
             db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME_CPT_ATTACHMENTS_TO_UPLOAD);
             db.execSQL("DROP INDEX IF EXISTS cptUploadsFkIndex");
             db.execSQL("DROP INDEX IF EXISTS cptUploadsIndex");
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME_CPT_GCM_TRANSACTIONS);
             onCreate(db);
         } catch (SQLException e) {
             Log.e(TAG, "Error on update db '" + DATABASE_NAME + "'", e);

@@ -18,7 +18,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.croconaut.cpt.link.PreferenceHelper;
-import com.croconaut.cpt.link.handler.main.GcmSyncRequest;
+import com.croconaut.cpt.link.Settings;
 import com.croconaut.cpt.link.handler.main.NewMessage;
 import com.croconaut.cpt.link.handler.p2p.UpdatedHash;
 import com.croconaut.cpt.network.NetworkAttachmentPreview;
@@ -139,8 +139,7 @@ public class DatabaseManager {
             // (the sent flags get updated in markMessagesAsSent(), even for foreign messages)
         }
 
-        PreferenceHelper helper = new PreferenceHelper(context);
-        if (helper.getTrackingEnabled()) {
+        if (Settings.getInstance().allowTracking) {
             if (message.header.getType() == NetworkHeader.Type.NORMAL) {
                 // only if the incoming message was NORMAL
                 message.addHop(getNewNetworkHop(context));
@@ -240,7 +239,6 @@ public class DatabaseManager {
 
         SQLiteCptHelper dbHelper = SQLiteCptHelper.getHelper(context);
         SQLiteDatabase database = dbHelper.getWritableDatabase();
-        PreferenceHelper helper = new PreferenceHelper(context);
 
         String table;
         ContentValues values = new ContentValues();
@@ -249,7 +247,7 @@ public class DatabaseManager {
         values.put(SQLiteCptHelper.COLUMN_NAME_APPLICATION_ID, app);
         values.put(SQLiteCptHelper.COLUMN_NAME_TIME_CREATED, clientMessage.creationTime);
         values.put(SQLiteCptHelper.COLUMN_NAME_CONTENT, clientMessage.payload.getRawAppData());
-        if (helper.getTrackingEnabled()) {
+        if (Settings.getInstance().allowTracking) {
             values.put(SQLiteCptHelper.COLUMN_NAME_HOPS, streamablesToByteArray(context, new ArrayList<>(Collections.singletonList(getNewNetworkHop(context)))));
         } else {
             values.put(SQLiteCptHelper.COLUMN_NAME_HOPS, streamablesToByteArray(context, new ArrayList<Streamable>()));
@@ -1511,188 +1509,6 @@ public class DatabaseManager {
         return set;
     }
 
-    public static void addGcmTransactionRequest(Context context, long time, int gcmMask) {
-        Log.v(TAG, TAG + ".addGcmTransactionRequest: " + new Date(time) + ", " + gcmMask);
-
-        if ((gcmMask & GcmSyncRequest.PERSISTENT_REQUESTS) != 0) {
-            SQLiteCptHelper dbHelper = SQLiteCptHelper.getHelper(context);
-            SQLiteDatabase database = dbHelper.getWritableDatabase();
-
-            String table = SQLiteCptHelper.TABLE_NAME_CPT_GCM_TRANSACTIONS;
-            ContentValues values = new ContentValues();
-            values.put(SQLiteCptHelper.COLUMN_NAME_GCM_TIME, time);
-            values.put(SQLiteCptHelper.COLUMN_NAME_GCM_MASK, gcmMask);
-
-            database.beginTransaction();
-            try {
-                long rowId = database.insert(table, null, values);
-                if (rowId == -1) {
-                    Log.e(TAG, "Insertion has failed");
-                } else {
-                    database.setTransactionSuccessful();
-                }
-            } finally {
-                database.endTransaction();
-            }
-        }
-    }
-
-    public static int getGcmTransactionRequestsMask(Context context) {
-        Log.v(TAG, TAG + ".getGcmTransactionRequestsMask");
-
-        int gcmMask = 0;
-
-        SQLiteCptHelper dbHelper = SQLiteCptHelper.getHelper(context);
-        SQLiteDatabase database = dbHelper.getReadableDatabase();
-
-        gcmMask |= (int) DatabaseUtils.longForQuery(database,
-                "SELECT max(" + SQLiteCptHelper.COLUMN_NAME_GCM_MASK + " & ?)"
-                    + " FROM " + SQLiteCptHelper.TABLE_NAME_CPT_GCM_TRANSACTIONS,
-                new String[] { String.valueOf(GcmSyncRequest.PERSISTENT_REQUESTS) }
-        );
-
-        // not very efficient but not called very often either
-        if (getGcmTransactionRequestsCount(context, GcmSyncRequest.UPLOAD_NON_LOCAL_MESSAGES) > 0) {
-            gcmMask |= GcmSyncRequest.UPLOAD_NON_LOCAL_MESSAGES;
-        }
-        if (getGcmTransactionRequestsCount(context, GcmSyncRequest.UPLOAD_LOCAL_MESSAGES_WITH_ATTACHMENTS) > 0) {
-            gcmMask |= GcmSyncRequest.UPLOAD_LOCAL_MESSAGES_WITH_ATTACHMENTS;
-        }
-        if (getGcmTransactionRequestsCount(context, GcmSyncRequest.DOWNLOAD_ATTACHMENTS) > 0) {
-            gcmMask |= GcmSyncRequest.DOWNLOAD_ATTACHMENTS;
-        }
-
-        return gcmMask;
-    }
-
-    public static long getGcmTransactionRequestsCount(Context context, int gcmMask) {
-        Log.v(TAG, TAG + ".getGcmTransactionRequestsCount: " + gcmMask);
-
-        // - both p2p and server connection send "sent" notification if the sending has been successful
-        // - p2p sets "sent" in the DB for NORMAL messages/attachments if the sending has been successful, all the other cases -> after successful shutdown()
-        // - p2p initiates connection based on hash (non-local messages), presence of NORMAL local messages and the "sent" flags (all the other cases,
-        //   with the exception of attachments, where the condition is "sentToRecipient" == true && "delivered" == false)
-        // - connection with the app server relies solely on the "sent" flags in the DB
-        //
-        // for detailed description see https://docs.google.com/spreadsheets/d/1Q_azBfeikV93riuMU1VzmwRFqqv0M1cOGh5KvVA2J-Y/edit?usp=sharing
-        int count = 0;
-
-        SQLiteCptHelper dbHelper = SQLiteCptHelper.getHelper(context);
-        SQLiteDatabase database = dbHelper.getReadableDatabase();
-
-        final String leftJoinDevicesTrust = " LEFT JOIN "  +  SQLiteCptHelper.TABLE_NAME_CPT_DEVICES_TRUST
-                + " ON ("
-                    + SQLiteCptHelper.COLUMN_NAME_SOURCE_CROCO_ID + " = " + SQLiteCptHelper.COLUMN_NAME_CROCO_ID
-                    + " OR " + SQLiteCptHelper.COLUMN_NAME_TARGET_CROCO_ID + " = " + SQLiteCptHelper.COLUMN_NAME_CROCO_ID
-                + ")";
-        final String andDeviceTrustClause = " AND ("
-                    + SQLiteCptHelper.COLUMN_NAME_CROCO_ID + " IS NULL"
-                    + " OR " + SQLiteCptHelper.COLUMN_NAME_TRUST_LEVEL + " != " + Communication.USER_TRUST_LEVEL_BLOCKED
-                + ")";
-
-        if ((gcmMask & GcmSyncRequest.PERSISTENT_REQUESTS) != 0) {
-            count += DatabaseUtils.queryNumEntries(database,
-                    SQLiteCptHelper.TABLE_NAME_CPT_GCM_TRANSACTIONS,
-                    "(" + SQLiteCptHelper.COLUMN_NAME_GCM_MASK + " & ?) != 0",
-                    new String[] { String.valueOf(gcmMask) }
-            );
-        }
-
-        if ((gcmMask & GcmSyncRequest.UPLOAD_NON_LOCAL_MESSAGES) != 0) {
-            // persistent messages
-            long c = DatabaseUtils.queryNumEntries(database,
-                    SQLiteCptHelper.TABLE_NAME_CPT_PERSISTENT_MESSAGE + leftJoinDevicesTrust,
-                    SQLiteCptHelper.COLUMN_NAME_FLAG_SENT_TO_APP_SERVER + " = 0"
-                            + andDeviceTrustClause
-            );
-            Log.d(TAG, "Persistent messages to upload: " + c);
-            count += c;
-            // all the other non-local messages
-            c = DatabaseUtils.queryNumEntries(database,
-                    SQLiteCptHelper.TABLE_NAME_CPT_MESSAGE + leftJoinDevicesTrust,
-                    SQLiteCptHelper.COLUMN_NAME_FLAG_SENT_TO_RECIPIENT + " = 0"
-                            + " AND " + SQLiteCptHelper.COLUMN_NAME_FLAG_LOCAL_ONLY + " = 0"
-                            + " AND " + SQLiteCptHelper.COLUMN_NAME_FLAG_SENT_TO_APP_SERVER + " = 0"
-                            + andDeviceTrustClause
-            );
-            Log.d(TAG, "Non-local messages to upload: " + c);
-            count += c;
-        }
-
-        if ((gcmMask & GcmSyncRequest.UPLOAD_LOCAL_MESSAGES_WITH_ATTACHMENTS) != 0) {
-            // local messages with some attachments which haven't been sent to the app server yet
-            // (we want to avoid sending empty local messages to the app server)
-            // NOTE: we rely on the fact that local messages *must* have an attachment
-            long c = DatabaseUtils.queryNumEntries(database,
-                    SQLiteCptHelper.TABLE_NAME_CPT_MESSAGE + leftJoinDevicesTrust,
-                    SQLiteCptHelper.COLUMN_NAME_FLAG_SENT_TO_RECIPIENT + " = 0"
-                            + " AND " + SQLiteCptHelper.COLUMN_NAME_FLAG_LOCAL_ONLY + " = 1"
-                            + " AND " + SQLiteCptHelper.COLUMN_NAME_FLAG_SENT_TO_APP_SERVER + " = 0"
-                            + andDeviceTrustClause
-                            + " AND EXISTS ("
-                                + "SELECT 1 FROM " + SQLiteCptHelper.TABLE_NAME_CPT_ATTACHMENTS_TO_UPLOAD
-                                    + " WHERE " + MESSAGE_ATTACHMENTS_TO_UPLOAD_WHERE_CLAUSE
-                            + ")");
-            Log.d(TAG, "Local messages to upload: " + c);
-            count += c;
-            // undelivered attachments
-            c = DatabaseUtils.queryNumEntries(database,
-                    SQLiteCptHelper.TABLE_NAME_CPT_ATTACHMENTS_TO_UPLOAD + leftJoinDevicesTrust,
-                    SQLiteCptHelper.COLUMN_NAME_UPLOAD_FLAG_DELIVERED + " = 0"
-                            + " AND " + SQLiteCptHelper.COLUMN_NAME_UPLOAD_FLAG_SENT_TO_APP_SERVER + " = 0"
-                            + andDeviceTrustClause
-            );
-            Log.d(TAG, "Attachments to upload: " + c);
-            count += c;
-        }
-
-        if ((gcmMask & GcmSyncRequest.DOWNLOAD_ATTACHMENTS) != 0) {
-            // requested attachments
-            long c = DatabaseUtils.queryNumEntries(database,
-                    SQLiteCptHelper.TABLE_NAME_CPT_ATTACHMENTS_TO_DOWNLOAD + leftJoinDevicesTrust,
-                    SQLiteCptHelper.COLUMN_NAME_DOWNLOAD_FLAG_RECEIVED + " = 0"
-                            + " AND " + SQLiteCptHelper.COLUMN_NAME_DOWNLOAD_FLAG_REQUEST_SENT_TO_APP_SERVER + " = 0"
-                            + andDeviceTrustClause
-            );
-            Log.d(TAG, "Attachments to download: " + c);
-            count += c;
-        }
-
-        return count;
-    }
-
-    public static void removeGcmTransactionRequests(Context context, Date threshold, int gcmMask) {
-        Log.v(TAG, TAG + ".removeGcmTransactionRequests: " + threshold + ", " + gcmMask);
-
-        if ((gcmMask & GcmSyncRequest.PERSISTENT_REQUESTS) != 0) {
-            SQLiteCptHelper dbHelper = SQLiteCptHelper.getHelper(context);
-            SQLiteDatabase database = dbHelper.getWritableDatabase();
-
-            database.beginTransaction();
-            try {
-                String table = SQLiteCptHelper.TABLE_NAME_CPT_GCM_TRANSACTIONS;
-
-                String query = new StringBuilder("UPDATE ").append(table)
-                        .append(" SET ").append(SQLiteCptHelper.COLUMN_NAME_GCM_MASK).append(" = ")
-                        .append(SQLiteCptHelper.COLUMN_NAME_GCM_MASK).append(" & ~?")
-                        .append(" WHERE (").append(SQLiteCptHelper.COLUMN_NAME_GCM_MASK).append(" & ?) != 0")
-                        .append(" AND ").append(SQLiteCptHelper.COLUMN_NAME_GCM_TIME).append(" <= ?")
-                        .toString();
-                database.execSQL(query, new Object[]{gcmMask, gcmMask, threshold.getTime()});
-
-                String whereClause = new StringBuilder(SQLiteCptHelper.COLUMN_NAME_GCM_MASK).append(" == 0")
-                        .toString();
-                String[] whereArgs = null;
-                int rows = database.delete(table, whereClause, whereArgs);
-                Log.d(TAG, "Deleted " + rows + " gcm transaction requests for mask " + gcmMask);
-
-                database.setTransactionSuccessful();
-            } finally {
-                database.endTransaction();
-            }
-        }
-    }
-
     private static int updateTable(Context context, String table, ContentValues values, String whereClause, String[] whereArgs) {
         int rows = 0;
 
@@ -1779,8 +1595,7 @@ public class DatabaseManager {
 
     // must run in UI thread
     public static void obtainLocation(Context context) {
-        PreferenceHelper helper = new PreferenceHelper(context);
-        if (!helper.getTrackingEnabled()) {
+        if (!Settings.getInstance().allowTracking) {
             Log.i(TAG, "Tracking is disabled, not obtaining location");
             return;
         }

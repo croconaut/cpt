@@ -5,12 +5,6 @@
     <!-- To keep the processor from sleeping when a message is received -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Permission to prevent other Android applications from registering and receiving the Android application's messages -->
-    <permission
-        android:name="${applicationId}.permission.C2D_MESSAGE"
-        android:protectionLevel="signature" />
-    <uses-permission android:name="${applicationId}.permission.C2D_MESSAGE" />
-
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -50,24 +44,6 @@
 
         <!-- network download services -->
         <service
-            android:name=".network.AppServerSyncDownloadMessagesService"
-            android:process=":cpt" />
-        <service
-            android:name=".network.AppServerSyncDownloadAttachmentsService"
-            android:process=":cpt" />
-        <service
-            android:name=".network.AppServerSyncUploadLocalMessagesWithAttachmentsService"
-            android:process=":cpt" />
-        <service
-            android:name=".network.AppServerSyncUploadNonLocalMessagesService"
-            android:process=":cpt" />
-        <service
-            android:name=".network.AppServerSyncUploadTokenService"
-            android:process=":cpt" />
-        <service
-            android:name=".network.AppServerSyncUploadFriendsService"
-            android:process=":cpt" />
-        <service
             android:name=".network.ClientSyncMessagesService"
             android:process=":cpt" />
         <service
@@ -82,50 +58,6 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
-
-        <!-- Handles messages sent from GCM to your application -->
-        <receiver
-            android:name="com.google.android.gms.gcm.GcmReceiver"
-            android:exported="true"
-            android:permission="com.google.android.c2dm.permission.SEND"
-            android:process=":cpt">
-            <intent-filter>
-                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
-                <!-- To support pre-4.4 KitKat devices -->
-                <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
-
-                <category android:name="${applicationId}" />
-            </intent-filter>
-        </receiver>
-        <!-- Enables various aspects of handling messages such as detecting different downstream message types -->
-        <service
-            android:name=".gcm.ListenerService"
-            android:exported="false"
-            android:process=":cpt">
-            <intent-filter>
-                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
-            </intent-filter>
-        </service>
-        <!-- Handle the creation, rotation, and updating of registration tokens -->
-        <service
-            android:name=".gcm.InstanceIdService"
-            android:exported="false"
-            android:process=":cpt">
-            <intent-filter>
-                <action android:name="com.google.android.gms.iid.InstanceID" />
-            </intent-filter>
-        </service>
-
-        <!-- gcm network manager's sync task service -->
-        <service
-            android:name=".gcm.SyncTaskService"
-            android:exported="true"
-            android:permission="com.google.android.gms.permission.BIND_NETWORK_TASK_SERVICE"
-            android:process=":cpt">
-            <intent-filter>
-                <action android:name="com.google.android.gms.gcm.ACTION_TASK_READY" />
-            </intent-filter>
-        </service>
 
         <!-- FileProvider for all possible root directories -->
         <provider
