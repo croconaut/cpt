@@ -1,0 +1,38 @@
+<paths>
+    <root-path name="Root" path=""/>
+
+    <!-- Context.getFilesDir() -->
+    <files-path name="FilesDir" path=""/>-->
+
+    <!-- Context.getCacheDir():
+        - The returned path may change over time if the calling app is moved to an adopted storage device, so only relative paths should be persisted.
+    -->
+    <cache-path name="CacheDir" path="" />
+
+    <!-- Context.getExternalFilesDir():
+        - If a shared storage device is emulated (as determined by isExternalStorageEmulated(File)),
+          it's contents are backed by a private user data partition, which means there is little benefit to storing data here instead of
+          the private directory returned by getFilesDir().
+        - Starting in KITKAT, no permissions are required to read or write to the returned path; it's always accessible to the calling app.
+        - The returned path may change over time if different shared storage media is inserted, so only relative paths should be persisted.
+    -->
+    <external-files-path name="ExternalFilesDir" path=""/>
+
+    <!-- Context.getExternalCacheDir():
+        - Currently the only time files here will be deleted by the platform is when running on JELLY_BEAN_MR1 or later
+          and isExternalStorageEmulated(File) returns true
+        - If a shared storage device is emulated (as determined by isExternalStorageEmulated(File)),
+          it's contents are backed by a private user data partition, which means there is little benefit to storing data here instead of
+          the private directory returned by getCacheDir().
+        - Starting in KITKAT, no permissions are required to read or write to the returned path; it's always accessible to the calling app.
+        - The returned path may change over time if different shared storage media is inserted, so only relative paths should be persisted.
+    -->
+    <external-cache-path name="ExternalCacheDir" path=""/>
+
+    <!-- Environment.getExternalStoragePublicDirectory():
+        - path should be one of DIRECTORY_MUSIC, DIRECTORY_PODCASTS, DIRECTORY_RINGTONES, DIRECTORY_ALARMS, DIRECTORY_NOTIFICATIONS,
+          DIRECTORY_PICTURES, DIRECTORY_MOVIES, DIRECTORY_DOWNLOADS, DIRECTORY_DCIM, or DIRECTORY_DOCUMENTS. May not be null.
+        - Note that this directory may not yet exist, so you must make sure it exists before using it such as with File.mkdirs().
+    -->
+    <external-path name="ExternalStoragePublicDirectory" path=""/>
+</paths>

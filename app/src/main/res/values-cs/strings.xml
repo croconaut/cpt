@@ -1,0 +1,36 @@
+<resources>
+    <string name="cpt_notif_p2p_download">Sťahovanie z mobilu (%1$s/s)</string>
+    <string name="cpt_notif_internet_download">Sťahovanie zo servera (%1$s/s)</string>
+    <string name="cpt_notif_p2p_upload">Odosielanie na mobil (%1$s/s)</string>
+    <string name="cpt_notif_internet_upload">Odosielanie na server (%1$s/s)</string>
+
+    <string name="cpt_notif_DISCOVERING">Vyhľadávanie (kliknutím vypni)</string>
+    <string name="cpt_notif_DISCOVERING_WAITING_FOR_GO_AND_CREDENTIALS">Čakanie na GO/SSID</string>
+    <string name="cpt_notif_DISCOVERING_WAITING_FOR_GO">Čakanie na GO</string>
+    <string name="cpt_notif_DISCOVERING_WAITING_FOR_CREDENTIALS">Čakanie na SSID</string>
+    <string name="cpt_notif_SCANNING">Wi-Fi vyhľadávanie</string>
+    <string name="cpt_notif_CONNECTING1">Wi-Fi pripájanie</string>
+    <string name="cpt_notif_CONNECTING2">Wi-Fi pripájanie</string>
+    <string name="cpt_notif_CONNECTED">Nadväzovanie spojenia</string>
+    <string name="cpt_notif_CONNECTED_AS_CLIENT">Výmena správ</string>
+    <string name="cpt_notif_DISCONNECTING">Odpájanie</string>
+    <string name="cpt_notif_DISCONNECTED">Odpojené</string>
+    <string name="cpt_notif_CREATING_GROUP">Vytváranie GO</string>
+    <string name="cpt_notif_CREATED_GROUP">Čakanie na spojenie</string>
+    <string name="cpt_notif_CREATED_GROUP_AS_SERVER">Výmena správ</string>
+    <string name="cpt_notif_CREATED_GROUP_WAITING_FOR_REMOVAL">Rušenie GO</string>
+    <string name="cpt_notif_CREATED_GROUP_REMOVED">Zrušený GO</string>
+    <string name="cpt_notif_BACKGROUND_MODE">Čakanie na režim spánku (kliknutím vypni)</string>
+
+    <string name="cpt_notif_settings">Nastavenia</string>
+    <string name="cpt_notif_restart">Rýchla oprava</string>
+    <string name="cpt_logs_no_email_app">Nemáš nainštalovanú žiadnu appku na posielanie emailov</string>
+    <string name="cpt_logs_email_subject">Logy z %1$s</string>
+    <string name="cpt_logs_chooser">Pošli logy emailom</string>
+    <string name="cpt_notif_connection_error1">Spojenie na %1$s sa nepodarilo</string>
+    <string name="cpt_notif_connection_error2">Kliknutím pošleš logy</string>
+    <string name="cpt_notif_communication_app_server">App server: chyba počas komunikácie</string>
+    <string name="cpt_notif_communication_p2p">P2P: chyba počas komunikácie</string>
+    <string name="cpt_notif_no_p2p_title">Internetový režim</string>
+    <string name="cpt_notif_no_p2p_desc">Kliknutím aktivuj P2P režim</string>
+</resources>

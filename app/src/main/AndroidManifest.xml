@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.croconaut.cpt">
+
+    <!-- To keep the processor from sleeping when a message is received -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Permission to prevent other Android applications from registering and receiving the Android application's messages -->
+    <permission
+        android:name="${applicationId}.permission.C2D_MESSAGE"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="${applicationId}.permission.C2D_MESSAGE" />
+
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- public storage directories -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- only for API <= 16 -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+
+    <uses-feature android:name="android.hardware.wifi.direct" />
+
+    <application android:allowBackup="true">
+        <activity
+            android:name=".link.DummyActivity"
+            android:allowTaskReparenting="true"
+            android:alwaysRetainTaskState="false"
+            android:clearTaskOnLaunch="true"
+            android:enabled="true"
+            android:excludeFromRecents="true"
+            android:finishOnTaskLaunch="true"
+            android:noHistory="true"
+            android:process=":cpt"
+            android:stateNotNeeded="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <service
+            android:name=".link.LinkLayerService"
+            android:process=":cpt" />
+        <service
+            android:name=".data.DataLayerIntentService"
+            android:process=":cpt" />
+
+        <!-- network download services -->
+        <service
+            android:name=".network.AppServerSyncDownloadMessagesService"
+            android:process=":cpt" />
+        <service
+            android:name=".network.AppServerSyncDownloadAttachmentsService"
+            android:process=":cpt" />
+        <service
+            android:name=".network.AppServerSyncUploadLocalMessagesWithAttachmentsService"
+            android:process=":cpt" />
+        <service
+            android:name=".network.AppServerSyncUploadNonLocalMessagesService"
+            android:process=":cpt" />
+        <service
+            android:name=".network.AppServerSyncUploadTokenService"
+            android:process=":cpt" />
+        <service
+            android:name=".network.AppServerSyncUploadFriendsService"
+            android:process=":cpt" />
+        <service
+            android:name=".network.ClientSyncMessagesService"
+            android:process=":cpt" />
+        <service
+            android:name=".network.ClientSyncAttachmentsService"
+            android:process=":cpt" />
+
+        <receiver
+            android:name=".ui.BootstrapReceiver"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.net.wifi.p2p.STATE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Handles messages sent from GCM to your application -->
+        <receiver
+            android:name="com.google.android.gms.gcm.GcmReceiver"
+            android:exported="true"
+            android:permission="com.google.android.c2dm.permission.SEND"
+            android:process=":cpt">
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+                <!-- To support pre-4.4 KitKat devices -->
+                <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+
+                <category android:name="${applicationId}" />
+            </intent-filter>
+        </receiver>
+        <!-- Enables various aspects of handling messages such as detecting different downstream message types -->
+        <service
+            android:name=".gcm.ListenerService"
+            android:exported="false"
+            android:process=":cpt">
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+            </intent-filter>
+        </service>
+        <!-- Handle the creation, rotation, and updating of registration tokens -->
+        <service
+            android:name=".gcm.InstanceIdService"
+            android:exported="false"
+            android:process=":cpt">
+            <intent-filter>
+                <action android:name="com.google.android.gms.iid.InstanceID" />
+            </intent-filter>
+        </service>
+
+        <!-- gcm network manager's sync task service -->
+        <service
+            android:name=".gcm.SyncTaskService"
+            android:exported="true"
+            android:permission="com.google.android.gms.permission.BIND_NETWORK_TASK_SERVICE"
+            android:process=":cpt">
+            <intent-filter>
+                <action android:name="com.google.android.gms.gcm.ACTION_TASK_READY" />
+            </intent-filter>
+        </service>
+
+        <!-- FileProvider for all possible root directories -->
+        <provider
+            android:name=".provider.StreamProvider"
+            android:authorities="${applicationId}.cpt.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="com.commonsware.cwac.provider.STREAM_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+            <meta-data
+                android:name="com.commonsware.cwac.provider.USE_LEGACY_CURSOR_WRAPPER"
+                android:value="true" />
+        </provider>
+    </application>
+
+</manifest>

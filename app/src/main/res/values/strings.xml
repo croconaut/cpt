@@ -1,0 +1,36 @@
+<resources>
+    <string name="cpt_notif_BACKGROUND_MODE">Waiting for display off (tap to disable)</string>
+    <string name="cpt_notif_CONNECTED">Making connection</string>
+    <string name="cpt_notif_CONNECTED_AS_CLIENT">Data exchange</string>
+    <string name="cpt_notif_CONNECTING1">Wi-Fi connection</string>
+    <string name="cpt_notif_CONNECTING2">Wi-Fi connection</string>
+    <string name="cpt_notif_CREATED_GROUP">Waiting for connections</string>
+    <string name="cpt_notif_CREATED_GROUP_AS_SERVER">Data exchange</string>
+    <string name="cpt_notif_CREATED_GROUP_REMOVED">Removed GO</string>
+    <string name="cpt_notif_CREATED_GROUP_WAITING_FOR_REMOVAL">Removing GO</string>
+    <string name="cpt_notif_CREATING_GROUP">Creating GO</string>
+    <string name="cpt_notif_DISCONNECTED">Disconnected</string>
+    <string name="cpt_notif_DISCONNECTING">Disconnecting</string>
+    <string name="cpt_notif_DISCOVERING">Discovering (tap to disable)</string>
+    <string name="cpt_notif_DISCOVERING_WAITING_FOR_CREDENTIALS">Waiting for SSID</string>
+    <string name="cpt_notif_DISCOVERING_WAITING_FOR_GO">Waiting for GO</string>
+    <string name="cpt_notif_DISCOVERING_WAITING_FOR_GO_AND_CREDENTIALS">Waiting for GO/SSID</string>
+    <string name="cpt_notif_SCANNING">Wi-Fi scan</string>
+    <string name="cpt_notif_internet_download">Downloading from server (%1$s/s)</string>
+    <string name="cpt_notif_internet_upload">Uploading to server (%1$s/s)</string>
+    <string name="cpt_notif_p2p_download">Downloading from device (%1$s/s)</string>
+    <string name="cpt_notif_p2p_upload">Uploading to device (%1$s/s)</string>
+
+    <string name="cpt_notif_restart">Quick fix</string>
+    <string name="cpt_notif_settings">Settings</string>
+    <string name="cpt_logs_email_address" translatable="false">logs@wifon.sk</string>
+    <string name="cpt_logs_no_email_app">No email application installed</string>
+    <string name="cpt_logs_email_subject">Logs from %1$s</string>
+    <string name="cpt_logs_chooser">Send logs by email</string>
+    <string name="cpt_notif_connection_error1">%1$s: error while connecting</string>
+    <string name="cpt_notif_connection_error2">Tap to send logs</string>
+    <string name="cpt_notif_communication_p2p">P2P: error during communication</string>
+    <string name="cpt_notif_communication_app_server">App server: error during communication</string>
+    <string name="cpt_notif_no_p2p_title">Internet mode</string>
+    <string name="cpt_notif_no_p2p_desc">Tap to enable P2P mode</string>
+</resources>

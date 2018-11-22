@@ -1,0 +1,67 @@
+apply plugin: 'com.android.library'
+apply plugin: 'com.github.dcendents.android-maven'
+
+group = 'com.croconaut'
+version = '1.0.17'
+
+android {
+    buildToolsVersion "27.0.1"
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 22
+
+        compileOptions {
+            sourceCompatibility JavaVersion.VERSION_1_7
+            targetCompatibility JavaVersion.VERSION_1_7
+        }
+    }
+    buildTypes {
+        release {
+            compileSdkVersion 27
+
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            compileSdkVersion 26
+        }
+    }
+}
+
+repositories {
+    maven {
+        url "https://s3.amazonaws.com/repo.commonsware.com"
+    }
+    maven {
+        url 'https://maven.google.com/'
+        name 'Google'
+    }
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: myMavenRepoWriteUrl)
+            pom.artifactId = 'cpt'
+            pom.project {
+                licenses {
+                    license {
+                        url 'http://creativecommons.org/licenses/by-nc-nd/3.0'
+                        distribution 'repo'
+                    }
+                }
+            }
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile 'com.google.android.gms:play-services-gcm:11.8.0'
+    compile 'com.commonsware.cwac:wakeful:1.1.0'
+    compile 'com.commonsware.cwac:provider:0.5.2'
+    compile 'com.android.support:support-v4:27.0.2'
+}
+
+apply plugin: 'com.google.gms.google-services'
