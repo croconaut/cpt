@@ -55,3 +55,5 @@ Technically speaking, you don't have to enable *CPT* if you don't want to transm
 
 # Source code release
 Please note that you need to supply your own `google-services.json` file and possibly `myMavenRepoWriteUrl` if you want to deploy the archive.
+
+Also, the library isn't 100% ready for targetting API > 22 because it still relies on the static permission model (among other things, there seem to be some issues with notifications, too). So if you plan to release your app on the Play Store, you need to change CPT internals in a way that you can use the dynamic model. Pull requests welcome. :)
